@@ -4,6 +4,10 @@ import time
 
 def show_splash(on_complete):
     splash = ctk.CTk()
+    try:
+        splash.iconbitmap("icon.ico")
+    except:
+        pass
     splash.title("")
     splash.resizable(False, False)
     ctk.set_appearance_mode("dark")

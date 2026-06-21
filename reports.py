@@ -19,6 +19,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 
 def show_reports(root_callback):
     win = ctk.CTk()
+    win.iconbitmap("icon.ico")
     win.title("StockFlow Pro — Reports")
     win.geometry("1100x650")
     win.resizable(False, False)
@@ -68,7 +69,13 @@ def show_reports(root_callback):
     nav_btn("Inventory", "📋", go_inventory)
     nav_btn("Sales", "💰", go_sales)
     nav_btn("Reports", "📊", lambda: None)
-    nav_btn("Settings", "⚙️", lambda: None)
+
+    def go_settings():
+        win.destroy()
+        from settings import show_settings
+        show_settings(root_callback)
+
+    nav_btn("Settings", "⚙️", go_settings)
 
     def do_logout():
         win.destroy()

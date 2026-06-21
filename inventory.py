@@ -10,6 +10,7 @@ from database import (
 
 def show_inventory(root_callback):
     win = ctk.CTk()
+    win.iconbitmap("icon.ico")
     win.title("StockFlow Pro — Inventory")
     win.geometry("1100x650")
     win.resizable(False, False)
@@ -62,7 +63,13 @@ def show_inventory(root_callback):
         show_reports(root_callback)
 
     nav_btn("Reports", "📊", go_reports)
-    nav_btn("Settings", "⚙️", lambda: None)
+
+    def go_settings():
+        win.destroy()
+        from settings import show_settings
+        show_settings(root_callback)
+
+    nav_btn("Settings", "⚙️", go_settings)
 
     def do_logout():
         win.destroy()

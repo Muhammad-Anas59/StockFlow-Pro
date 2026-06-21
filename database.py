@@ -1,5 +1,6 @@
 # database.py
 import mysql.connector
+import bcrypt
 from config import DB_CONFIG
 
 def get_connection():
@@ -15,10 +16,13 @@ def verify_login(username, password):
     if not conn:
         return False
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE username=%s AND password=%s", (username, password))
+    cursor.execute("SELECT password FROM users WHERE username=%s", (username,))
     result = cursor.fetchone()
     conn.close()
-    return result is not None
+    if not result:
+        return False
+    stored_hash = result[0].encode("utf-8")
+    return bcrypt.checkpw(password.encode("utf-8"), stored_hash)
 
 def user_exists(username):
     conn = get_connection()
@@ -32,10 +36,9 @@ def user_exists(username):
 
 def update_password(username, new_password):
     conn = get_connection()
-    if not conn:
-        return
     cursor = conn.cursor()
-    cursor.execute("UPDATE users SET password=%s WHERE username=%s", (new_password, username))
+    hashed = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    cursor.execute("UPDATE users SET password=%s WHERE username=%s", (hashed, username))
     conn.commit()
     conn.close()
 
@@ -114,21 +117,20 @@ def get_dashboard_stats():
 def record_sale(product_id, quantity_sold, total_price):
     conn = get_connection()
     if not conn:
-        return False
+        return None
     cursor = conn.cursor()
-    # Record the sale
     cursor.execute(
         "INSERT INTO sales (product_id, quantity_sold, total_price) VALUES (%s,%s,%s)",
         (product_id, quantity_sold, total_price)
     )
-    # Reduce stock
+    sale_id = cursor.lastrowid
     cursor.execute(
         "UPDATE products SET quantity = quantity - %s WHERE id=%s",
         (quantity_sold, product_id)
     )
     conn.commit()
     conn.close()
-    return True
+    return sale_id
 
 def get_all_sales():
     conn = get_connection()
@@ -151,7 +153,7 @@ def get_products_for_sale():
     if not conn:
         return []
     cursor = conn.cursor()
-    cursor.execute("SELECT id, name, price, quantity FROM products WHERE quantity > 0")
+    cursor.execute("SELECT id, name, category, price, quantity FROM products WHERE quantity > 0")
     rows = cursor.fetchall()
     conn.close()
     return rows
@@ -224,10 +226,37 @@ def register_user(username, password, email):
     if not conn:
         return False
     cursor = conn.cursor()
+    hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     cursor.execute(
         "INSERT INTO users (username, password, email) VALUES (%s,%s,%s)",
-        (username, password, email)
+        (username, hashed, email)
     )
     conn.commit()
     conn.close()
     return True
+# ── USER INFO FUNCTION ──
+def get_user_info(username):
+    conn = get_connection()
+    if not conn:
+        return None
+    cursor = conn.cursor()
+    cursor.execute("SELECT username, email, created_at FROM users WHERE username=%s", (username,))
+    result = cursor.fetchone()
+    conn.close()
+    return result
+
+def get_sale_by_id(sale_id):
+    conn = get_connection()
+    if not conn:
+        return None
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT s.id, p.name, p.category, s.quantity_sold, s.total_price, s.sale_date
+        FROM sales s
+        JOIN products p ON s.product_id = p.id
+        WHERE s.id = %s
+    """, (sale_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return row
+

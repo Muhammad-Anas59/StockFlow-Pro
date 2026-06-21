@@ -1,27 +1,37 @@
-StockFlow Pro 
+# StockFlow Pro 📦
 
-A professional desktop Inventory & Sales Management System built with Python, CustomTkinter, and MySQL — designed for small businesses, retail shops, and pharmacies to track stock, manage sales, and generate reports.
+A professional desktop **Inventory & Sales Management System** built with Python, CustomTkinter, and MySQL — designed for small businesses, retail shops, and pharmacies to track stock, manage sales, and generate reports.
 
+---
 
-Features
+## ✨ Features
 
+- **Secure Login** — Session-based authentication with a Forgot Password / reset flow
+- **Inventory Management** — Add, update, delete, and search products in real time
+- **Sales Recording** — Record sales with auto stock deduction and live total calculation
+- **Dashboard** — At-a-glance stats: total products, total stock, low-stock alerts, and stock value
+- **Reports & Analytics** — Visual charts (top products by revenue, 7-day revenue trend) plus a full sales summary table
+- **PDF Export** — One-click export of the sales report as a polished, printable PDF
+- **Modern UI** — Dark-themed, professional interface built with CustomTkinter
 
-Secure Login — Session-based authentication with a Forgot Password / reset flow
-Inventory Management — Add, update, delete, and search products in real time
-Sales Recording — Record sales with auto stock deduction and live total calculation
-Dashboard — At-a-glance stats: total products, total stock, low-stock alerts, and stock value
-Reports & Analytics — Visual charts (top products by revenue, 7-day revenue trend) plus a full sales summary table
-PDF Export — One-click export of the sales report as a polished, printable PDF
-Modern UI — Dark-themed, professional interface built with CustomTkinter
+---
 
+## 🛠️ Tech Stack
 
- Tech Stack
+| Layer | Technology |
+|---|---|
+| Language | Python 3.13 |
+| UI Framework | CustomTkinter |
+| Database | MySQL 8.0 |
+| DB Connector | mysql-connector-python |
+| Charts | Matplotlib |
+| PDF Generation | ReportLab |
 
-LayerTechnologyLanguagePython 3.13UI FrameworkCustomTkinterDatabaseMySQL 8.0DB Connectormysql-connector-pythonChartsMatplotlibPDF GenerationReportLab
+---
 
+## 📁 Project Structure
 
-Project Structure
-
+```
 StockFlowPro/
 ├── main.py              # App entry point
 ├── config.py            # Database credentials
@@ -33,17 +43,20 @@ StockFlowPro/
 ├── inventory.py         # Add / Edit / Delete / Search products
 ├── sales.py             # Record sales, sales history
 └── reports.py           # Charts, sales summary, PDF export
+```
 
+---
 
-Setup Instructions
+## ⚙️ Setup Instructions
 
-1. Install dependencies
+### 1. Install dependencies
+```bash
+pip install customtkinter mysql-connector-python pillow matplotlib reportlab
+```
 
-bashpip install customtkinter mysql-connector-python pillow matplotlib reportlab
-
-2. Create the MySQL database
-
-sqlCREATE DATABASE inventory_db;
+### 2. Create the MySQL database
+```sql
+CREATE DATABASE inventory_db;
 USE inventory_db;
 
 CREATE TABLE users (
@@ -75,33 +88,59 @@ CREATE TABLE sales (
 
 INSERT INTO users (username, password, email)
 VALUES ('admin', 'admin123', 'admin@stockflow.com');
+```
 
-3. Configure your database credentials
-
-Edit config.py with your MySQL username/password:
-
-pythonDB_CONFIG = {
+### 3. Configure your database credentials
+Edit `config.py` with your MySQL username/password:
+```python
+DB_CONFIG = {
     "host": "localhost",
     "user": "root",
     "password": "YOUR_PASSWORD",
     "database": "inventory_db"
 }
+```
 
-4. Run the app
+### 4. Run the app
+```bash
+python main.py
+```
 
-bashpython main.py
+**Default login:** `admin` / `admin123`
 
-Default login: admin / admin123
+---
 
+## 📸 Screenshots
 
-Roadmap / Planned Improvements
+**Login**
+![Login Screen](Screenshots/login_screen.png)
 
+**Dashboard**
+![Dashboard](Screenshots/dashboard_screen.png)
 
- Password hashing (bcrypt) for stored credentials
- Packaged .exe for installation without Python
- Multi-user roles (admin / cashier)
- Invoice printing per individual sale
+**Inventory Management**
+![Inventory](Screenshots/inventory_screen.png)
 
-👤 Author
+**Sales**
+![Sales](Screenshots/sales_screen.png)
 
-Built by [Muhammad Anas] — available for freelance desktop application development (inventory systems, POS systems, custom business tools).
+**Reports & Analytics**
+![Reports](Screenshots/reports_screen.png)
+
+**Settings**
+![Settings](Screenshots/settings_screen.png)
+
+---
+
+## 🚀 Roadmap / Planned Improvements
+
+- [ ] Password hashing (bcrypt) for stored credentials
+- [ ] Packaged `.exe` for installation without Python
+- [ ] Multi-user roles (admin / cashier)
+- [ ] Invoice printing per individual sale
+
+---
+
+## 👤 Author
+
+Built by **[ Muhammad Anas ]** — available for freelance desktop application development (inventory systems, POS systems, custom business tools).

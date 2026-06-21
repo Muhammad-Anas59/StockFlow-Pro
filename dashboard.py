@@ -5,6 +5,7 @@ from database import get_dashboard_stats
 
 def show_dashboard(root_callback):
     win = ctk.CTk()
+    win.iconbitmap("icon.ico")
     win.title("StockFlow Pro — Dashboard")
     win.geometry("1100x650")
     win.resizable(False, False)
@@ -61,7 +62,13 @@ def show_dashboard(root_callback):
         show_reports(root_callback)
 
     nav_button("Reports", "📊", open_reports)
-    nav_button("Settings", "⚙️", lambda: None)
+
+    def go_settings():
+        win.destroy()
+        from settings import show_settings
+        show_settings(root_callback)
+
+    nav_button("Settings", "⚙️", go_settings)
 
     # Logout
     def do_logout():
@@ -148,7 +155,7 @@ def show_dashboard(root_callback):
     actions = [
         ("➕  Add Product", "#38bdf8", "#0ea5e9", open_inventory),
         ("📋  View Inventory", "#34d399", "#10b981", open_inventory),
-        ("📊  View Reports", "#a78bfa", "#8b5cf6", lambda: None),
+        ("📊  View Reports", "#a78bfa", "#8b5cf6", open_reports),
     ]
 
     for text, fg, hover, cmd in actions:

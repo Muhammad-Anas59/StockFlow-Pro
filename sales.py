@@ -1,15 +1,21 @@
 # sales.py
 import customtkinter as ctk
 import session
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 import tkinter.ttk as ttk
+from datetime import datetime
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from database import (
     get_products_for_sale, record_sale,
-    get_all_sales, get_sales_stats
+    get_all_sales, get_sales_stats, get_sale_by_id
 )
 
 def show_sales(root_callback):
     win = ctk.CTk()
+    win.iconbitmap("icon.ico")
     win.title("StockFlow Pro — Sales")
     win.geometry("1100x650")
     win.resizable(False, False)
@@ -19,6 +25,56 @@ def show_sales(root_callback):
     x = (win.winfo_screenwidth() // 2) - 550
     y = (win.winfo_screenheight() // 2) - 325
     win.geometry(f"1100x650+{x}+{y}")
+
+    def generate_receipt(sale_id, product_name, category, qty, unit_price, total, sale_date):
+        file_path = filedialog.asksaveasfilename(
+            parent=win,
+            defaultextension=".pdf",
+            filetypes=[("PDF files", "*.pdf")],
+            initialfile=f"Receipt_{sale_id}.pdf"
+        )
+        if not file_path:
+            return
+        try:
+            doc = SimpleDocTemplate(file_path, pagesize=letter, topMargin=50, bottomMargin=50)
+            styles = getSampleStyleSheet()
+            center_title = ParagraphStyle("CenterTitle", parent=styles["Title"], alignment=1)
+            center_normal = ParagraphStyle("CenterNormal", parent=styles["Normal"], alignment=1)
+
+            elements = [
+                Paragraph("StockFlow Pro", center_title),
+                Paragraph("Sales Receipt", center_normal),
+                Spacer(1, 14),
+                Paragraph(f"Receipt No: #{sale_id}", styles["Normal"]),
+                Paragraph(f"Date: {sale_date}", styles["Normal"]),
+                Spacer(1, 18),
+            ]
+
+            table_data = [
+                ["Product", "Category", "Qty", "Unit Price (Rs)", "Total (Rs)"],
+                [product_name, category or "-", str(qty), f"{unit_price:,.2f}", f"{total:,.2f}"]
+            ]
+            t = Table(table_data, colWidths=[120, 100, 50, 110, 100])
+            t.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0f172a")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                ("ALIGN", (2, 0), (-1, -1), "CENTER"),
+                ("FONTSIZE", (0, 0), (-1, -1), 10),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+            ]))
+            elements.append(t)
+            elements.append(Spacer(1, 24))
+            elements.append(Paragraph(f"<b>Total Amount: Rs {total:,.2f}</b>", styles["Normal"]))
+            elements.append(Spacer(1, 30))
+            elements.append(Paragraph("Thank you for your purchase!", center_normal))
+
+            doc.build(elements)
+            messagebox.showinfo("Success", f"Receipt saved to:\n{file_path}", parent=win)
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not save receipt:\n{e}", parent=win)
+
 
     # ── SIDEBAR ──
     sidebar = ctk.CTkFrame(win, width=220, fg_color="#0f172a", corner_radius=0)
@@ -61,7 +117,13 @@ def show_sales(root_callback):
         show_reports(root_callback)
 
     nav_btn("Reports", "📊", go_reports)
-    nav_btn("Settings", "⚙️", lambda: None)
+
+    def go_settings():
+        win.destroy()
+        from settings import show_settings
+        show_settings(root_callback)
+
+    nav_btn("Settings", "⚙️", go_settings)
 
     def do_logout():
         win.destroy()
@@ -126,11 +188,11 @@ def show_sales(root_callback):
     ctk.CTkLabel(form_frame, text="Select Product", font=ctk.CTkFont("Arial", 11, "bold"), text_color="#cbd5e1").pack(anchor="w", padx=20)
 
     products = get_products_for_sale()
-    product_map = {}  # name -> (id, price, stock)
+    product_map = {}  # name -> (id, category, price, stock)
     product_names = []
     for p in products:
         label = f"{p[1]}"
-        product_map[label] = {"id": p[0], "price": float(p[2]), "stock": p[3]}
+        product_map[label] = {"id": p[0], "category": p[2], "price": float(p[3]), "stock": p[4]}
         product_names.append(label)
 
     selected_product = ctk.StringVar(value=product_names[0] if product_names else "No products available")
@@ -211,7 +273,7 @@ def show_sales(root_callback):
             parent=win
         )
         if confirm:
-            record_sale(info["id"], qty, total)
+            sale_id = record_sale(info["id"], qty, total)
             messagebox.showinfo("Success", f"Sale recorded!\nRevenue: Rs {total:,}", parent=win)
             txt_qty.delete(0, "end")
             lbl_total.configure(text="—")
@@ -222,10 +284,14 @@ def show_sales(root_callback):
             product_names.clear()
             for p in new_products:
                 label = f"{p[1]}"
-                product_map[label] = {"id": p[0], "price": float(p[2]), "stock": p[3]}
+                product_map[label] = {"id": p[0], "category": p[2], "price": float(p[3]), "stock": p[4]}
                 product_names.append(label)
             dropdown.configure(values=product_names if product_names else ["No products"])
-
+            if messagebox.askyesno("Print Receipt", "Would you like to print a receipt for this sale?", parent=win):
+                generate_receipt(
+                    sale_id, name, info.get("category"), qty,
+                    info["price"], total, datetime.now().strftime("%Y-%m-%d %H:%M")
+                )
     ctk.CTkButton(
         form_frame, text="✅  Record Sale", width=240, height=42,
         fg_color="#34d399", hover_color="#10b981",
@@ -263,6 +329,28 @@ def show_sales(root_callback):
         tree.heading(col, text=col)
         tree.column(col, width=w, anchor="center")
     tree.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+
+    def reprint_receipt():
+        selected = tree.selection()
+        if not selected:
+            messagebox.showwarning("Warning", "Select a sale from the table first.", parent=win)
+            return
+        row = tree.item(selected[0])["values"]
+        sale_id = row[0]
+        sale_data = get_sale_by_id(sale_id)
+        if not sale_data:
+            messagebox.showerror("Error", "Sale not found.", parent=win)
+            return
+        _, p_name, p_category, qty_sold, total_price, sale_date = sale_data
+        unit_price = float(total_price) / qty_sold
+        generate_receipt(sale_id, p_name, p_category, qty_sold, unit_price, float(total_price), str(sale_date))
+
+    ctk.CTkButton(
+        right_frame, text="🧾  Reprint Receipt", width=200, height=38,
+        fg_color="#a78bfa", hover_color="#8b5cf6",
+        text_color="#0f172a", font=ctk.CTkFont("Arial", 12, "bold"),
+        corner_radius=8, command=reprint_receipt
+    ).pack(padx=10, pady=(0, 10))
 
     def refresh_table():
         for row in tree.get_children():

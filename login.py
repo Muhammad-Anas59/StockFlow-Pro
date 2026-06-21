@@ -5,6 +5,7 @@ from database import verify_login
 
 def show_login(on_success):
     win = ctk.CTk()
+    win.iconbitmap("icon.ico")
     win.title("StockFlow Pro — Login")
     win.geometry("900x540")
     win.resizable(False, False)
