@@ -111,6 +111,13 @@ def show_sales(root_callback):
     nav_btn("Inventory", "📋", go_inventory)
     nav_btn("Sales", "💰", lambda: None)
 
+    def go_locations():
+        win.destroy()
+        from locations import show_locations
+        show_locations(root_callback)
+
+    nav_btn("Locations", "📍", go_locations)
+
     def go_reports():
         win.destroy()
         from reports import show_reports

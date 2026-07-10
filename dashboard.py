@@ -56,6 +56,13 @@ def show_dashboard(root_callback):
 
     nav_button("Sales", "💰", open_sales)
 
+    def open_locations():
+        win.destroy()
+        from locations import show_locations
+        show_locations(root_callback)
+
+    nav_button("Locations", "📍", open_locations)
+
     def open_reports():
         win.destroy()
         from reports import show_reports

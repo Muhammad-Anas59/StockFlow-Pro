@@ -53,6 +53,17 @@ def add_product(name, category, quantity, price, supplier):
     )
     conn.commit()
     conn.close()
+def restock_product(product_id, quantity_to_add):
+    conn = get_connection()
+    if not conn:
+        return
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE products SET quantity = quantity + %s WHERE id=%s",
+        (quantity_to_add, product_id)
+    )
+    conn.commit()
+    conn.close()
 
 def get_all_products():
     conn = get_connection()
@@ -89,14 +100,19 @@ def update_product(pid, name, category, quantity, price, supplier):
     conn.commit()
     conn.close()
 
-def delete_product(pid):
+def delete_product(product_id):
     conn = get_connection()
     if not conn:
-        return
+        return False, "Connection failed"
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM products WHERE id=%s", (pid,))
-    conn.commit()
-    conn.close()
+    try:
+        cursor.execute("DELETE FROM products WHERE id=%s", (product_id,))
+        conn.commit()
+        return True, "Deleted"
+    except Exception as e:
+        return False, "This product has cartons or sales linked to it and cannot be deleted."
+    finally:
+        conn.close()
 
 def get_dashboard_stats():
     conn = get_connection()
@@ -259,4 +275,124 @@ def get_sale_by_id(sale_id):
     row = cursor.fetchone()
     conn.close()
     return row
+# ── BARCODE / CARTON FUNCTIONS ──
+
+def set_product_barcode(product_id, barcode_value):
+    conn = get_connection()
+    if not conn:
+        return
+    cursor = conn.cursor()
+    cursor.execute("UPDATE products SET barcode=%s WHERE id=%s", (barcode_value, product_id))
+    conn.commit()
+    conn.close()
+
+def get_product_by_barcode(barcode_value):
+    conn = get_connection()
+    if not conn:
+        return None
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM products WHERE barcode=%s", (barcode_value,))
+    row = cursor.fetchone()
+    conn.close()
+    return row
+
+def create_carton(product_id, carton_barcode, units_per_carton):
+    conn = get_connection()
+    if not conn:
+        return None
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO cartons (product_id, carton_barcode, units_per_carton, status) VALUES (%s,%s,%s,%s)",
+        (product_id, carton_barcode, units_per_carton, "pending")
+    )
+    carton_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return carton_id
+
+def get_carton_by_barcode(carton_barcode):
+    conn = get_connection()
+    if not conn:
+        return None
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT c.id, c.product_id, p.name, c.carton_barcode, c.units_per_carton, c.status
+        FROM cartons c
+        JOIN products p ON c.product_id = p.id
+        WHERE c.carton_barcode=%s
+    """, (carton_barcode,))
+    row = cursor.fetchone()
+    conn.close()
+    return row
+
+def add_location(name, location_code):
+    conn = get_connection()
+    if not conn:
+        return None
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO locations (name, location_code) VALUES (%s,%s)",
+        (name, location_code)
+    )
+    loc_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    return loc_id
+
+def get_location_by_code(location_code):
+    conn = get_connection()
+    if not conn:
+        return None
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM locations WHERE location_code=%s", (location_code,))
+    row = cursor.fetchone()
+    conn.close()
+    return row
+
+def log_movement(carton_id, location_id, action):
+    conn = get_connection()
+    if not conn:
+        return
+    cursor = conn.cursor()
+
+    # Get carton's current status BEFORE this scan, plus product_id and units
+    cursor.execute("SELECT product_id, units_per_carton, status FROM cartons WHERE id=%s", (carton_id,))
+    carton_info = cursor.fetchone()
+
+    cursor.execute(
+        "INSERT INTO stock_movements (carton_id, location_id, action) VALUES (%s,%s,%s)",
+        (carton_id, location_id, action)
+    )
+
+    if carton_info:
+        product_id, units_per_carton, previous_status = carton_info
+
+        # Only add stock the FIRST time a carton is marked received
+        # (prevents double-counting if someone scans "received" twice by mistake)
+        if action == "received" and previous_status != "received":
+            cursor.execute(
+                "UPDATE products SET quantity = quantity + %s WHERE id=%s",
+                (units_per_carton, product_id)
+            )
+
+        cursor.execute("UPDATE cartons SET status=%s WHERE id=%s", (action if action != "moved" else "stored", carton_id))
+
+    conn.commit()
+    conn.close()
+
+def get_movement_history(carton_id):
+    conn = get_connection()
+    if not conn:
+        return []
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT sm.id, l.name, sm.action, sm.scanned_at
+        FROM stock_movements sm
+        LEFT JOIN locations l ON sm.location_id = l.id
+        WHERE sm.carton_id=%s
+        ORDER BY sm.scanned_at DESC
+    """, (carton_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
 
