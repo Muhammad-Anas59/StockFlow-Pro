@@ -48,21 +48,30 @@ A professional desktop **Inventory, Sales & Warehouse Management System** built 
 
 ## 📁 Project Structure
 
-```
+```text
 StockFlowPro/
-├── main.py               # App entry point
-├── config.py              # Database credentials
-├── database.py            # All database operations
-├── splash_screen.py       # Loading screen
-├── login.py               # Login form
-├── forgot_password.py     # Password reset form
-├── dashboard.py           # Main dashboard with stats
-├── inventory.py           # Add / Edit / Delete / Search products
-├── sales.py               # Record sales, sales history
-├── reports.py             # Charts, sales summary, PDF export
-├── barcode_generator.py   # SKU & carton barcode generation
-├── warehouse.py           # Location management & carton scanning
-└── movement_log.py        # Received → stored → opened audit trail
+├── main.py
+├── splash_screen.py
+├── login.py
+├── sign_up.py
+├── forgot_password.py
+├── session.py
+├── dashboard.py
+├── inventory.py
+├── locations.py
+├── sales.py
+├── reports.py
+├── settings.py
+├── database.py
+├── barcode_gen.py
+├── make_icon.py
+├── config.py.example
+├── requirements.txt
+├── StockFlowPro.spec
+├── icon.ico
+├── barcodes/              # generated Code128 images (SKU and carton)
+├── Screenshots/           # README images
+└── README.md
 ```
 
 ---
